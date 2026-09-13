@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6d2940">
+<title>Wine POPUP Manager Ver.1.2</title>
+<style>
+:root{--wine:#6d2940;--bg:#f6f3ef;--card:#fff;--text:#292523;--muted:#746c67;--line:#e5ded8;--green:#28704f;--red:#a33d3d}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif}
+body{padding-bottom:env(safe-area-inset-bottom)}
+.header{background:linear-gradient(135deg,#4d1e2d,#7d3c54);color:#fff;padding:18px 16px 16px;position:sticky;top:0;z-index:20}
+.header h1{font-size:20px;margin:0 0 3px}.header p{font-size:11px;margin:0;opacity:.82}
+.nav{position:sticky;top:70px;z-index:19;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:7px;padding:9px;overflow-x:auto}
+.nav button{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:9px 13px;font-weight:800;font-size:12px}
+.nav button.active{background:var(--wine);border-color:var(--wine);color:#fff}
+main{max-width:900px;margin:auto;padding:15px 12px 35px}.page{display:none}.page.active{display:block}
+h2{font-size:19px;margin:4px 0 3px}.sub{font-size:11px;color:var(--muted);margin:0 0 13px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.035)}
+.kpi .label{font-size:10px;color:var(--muted)}.kpi .value{font-size:20px;font-weight:900;margin-top:5px}
+.form{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.full{grid-column:1/-1}
+label{display:block;font-size:10px;color:var(--muted);font-weight:800;margin:0 0 5px}
+input,select,textarea{width:100%;min-height:42px;border:1px solid #d6cec8;border-radius:9px;background:#fff;padding:9px 10px;color:var(--text)}
+textarea{min-height:80px;resize:vertical}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:0;border-radius:9px;padding:11px 14px;font-weight:900;cursor:pointer;min-height:42px}
+.primary{background:var(--wine);color:#fff}.secondary{background:#eee8e3;color:var(--text)}.danger{background:#f5dddd;color:var(--red)}
+.notice{background:#f8edf0;border-left:4px solid var(--wine);border-radius:8px;padding:10px 11px;font-size:11px;margin-bottom:12px;line-height:1.6}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{font-size:10px;color:var(--muted);background:#faf8f6}td.num,th.num{text-align:right}
+.rank{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}.rank:last-child{border-bottom:0}
+.empty{text-align:center;color:var(--muted);padding:22px;font-size:12px}.small{font-size:10px;color:var(--muted);line-height:1.6}
+@media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<header class="header"><h1>🍷 Wine POPUP Manager</h1><p>地域カフェ × ワイン ポップアップ管理ツール Ver.1.2</p></header>
+<nav class="nav" id="nav">
+<button type="button" class="active" data-page="dashboard">ダッシュボード</button>
+<button type="button" data-page="event">イベント設定</button>
+<button type="button" data-page="wines">ワイン</button>
+<button type="button" data-page="sales">販売入力</button>
+<button type="button" data-page="report">報告書</button>
+</nav>
+<main>
+<section id="dashboard" class="page active">
+<h2>ダッシュボード</h2><p class="sub">今回の1イベントだけを管理します</p>
+<div class="notice">ワイン仕入れ会社 → カフェへ卸売 ／ カフェ → お客様へ販売 ／ 宣伝部隊 → 集客・宣伝。<br>本ツールでは<strong>カフェの売上</strong>と<strong>宣伝部隊の報酬</strong>を見える化します。</div>
+<div class="grid" id="kpis"></div>
+<div class="grid2" style="margin-top:10px">
+<div class="card"><h3>🍷 ワイン別販売状況</h3><div id="wineSummary"></div></div>
+<div class="card"><h3>💰 精算イメージ</h3><div id="settlementSummary"></div></div>
+</div>
+<div class="card" style="margin-top:10px"><h3>📌 現在のイベント</h3><div id="eventSummary"></div></div>
+</section>
+
+<section id="event" class="page">
+<h2>イベント設定</h2><p class="sub">今回は1回分だけ入力します</p>
+<div class="card"><div class="form">
+<div><label>イベント名</label><input id="eName" placeholder="例：モーゼルワインPOPUP"></div>
+<div><label>開催日</label><input id="eDate" type="date"></div>
+<div><label>カフェ名</label><input id="eCafe" placeholder="例：Cafe ○○"></div>
+<div><label>開催場所（任意）</label><input id="ePlace" placeholder="例：横浜市○○区"></div>
+<div><label>宣伝部隊名</label><input id="ePromoter" placeholder="例：○○兄弟"></div>
+<div><label>宣伝部隊の報酬率（%）</label><input id="eRate" type="number" min="0" max="100" step="0.1" value="10"></div>
+<div><label>来場者数（任意）</label><input id="eVisitors" type="number" min="0" value="0"></div>
+<div class="full"><label>メモ（任意）</label><textarea id="eMemo" placeholder="イベントに関するメモ"></textarea></div>
+</div><div class="actions"><button class="btn primary" type="button" id="saveEvent">イベント設定を保存</button></div></div>
+</section>
+
+<section id="wines" class="page">
+<h2>ワイン登録</h2><p class="sub">カフェで販売するワインと販売価格を登録します</p>
+<div class="card"><div class="form">
+<div><label>ワイン名</label><input id="wName" placeholder="例：Mosel Riesling A"></div>
+<div><label>販売価格（税込）</label><input id="wPrice" type="number" min="0" value="3500"></div>
+<div><label>タイプ（任意）</label><input id="wType" placeholder="例：白・赤"></div>
+<div><label>産地（任意）</label><input id="wRegion" placeholder="例：ドイツ・モーゼル"></div>
+</div><div class="actions"><button class="btn primary" type="button" id="addWine">ワインを登録</button></div></div>
+<div class="card" style="margin-top:12px"><div class="scroll"><table><thead><tr><th>ワイン</th><th>タイプ</th><th>産地</th><th class="num">販売価格</th><th class="num">販売本数</th><th class="num">売上</th><th></th></tr></thead><tbody id="wineTable"></tbody></table></div></div>
+</section>
+
+<section id="sales" class="page">
+<h2>販売入力</h2><p class="sub">売れた本数を入力すると、カフェ売上と宣伝部隊報酬が自動計算されます</p>
+<div class="card"><div class="form"><div><label>ワイン</label><select id="sWine"></select></div><div><label>販売本数</label><input id="sQty" type="number" min="1" step="1" value="1"></div></div>
+<div class="actions"><button class="btn primary" type="button" id="addSale">販売を登録</button></div></div>
+<div class="card" style="margin-top:12px"><div class="scroll"><table><thead><tr><th>ワイン</th><th class="num">本数</th><th class="num">売上</th><th></th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
+</section>
+
+<section id="report" class="page">
+<h2>イベント後の報告書</h2><p class="sub">入力した内容から報告用ファイルを作成します</p>
+<div class="notice">「報告書をダウンロード」で、イベント概要・ワイン別販売実績・カフェ売上・宣伝部隊報酬をまとめた<strong>HTML形式の報告書</strong>を保存します。ブラウザで開いて印刷・PDF保存もできます。</div>
+<div class="card" id="reportPreview"></div>
+<div class="actions"><button class="btn primary" type="button" id="downloadReport">📄 報告書をダウンロード</button><button class="btn secondary" type="button" id="downloadCsv">📊 売上明細CSV</button></div>
+</section>
+</main>
+<footer style="text-align:center;color:#746c67;font-size:9px;padding:15px">Wine POPUP Manager Ver.1.2 ｜ データはこの端末のブラウザに保存されます</footer>
+<div id="toast" style="position:fixed;left:50%;bottom:20px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#2b2928;color:#fff;padding:11px 15px;border-radius:999px;font-size:12px;font-weight:800;z-index:100;transition:.2s;max-width:90%;text-align:center"></div>
+
+<script>
+(function(){
+"use strict";
+const KEY="winePopupManagerV12";
+const DEMO={event:{name:"モーゼルワインPOPUP",date:"2026-10-03",cafe:"Cafe Sample",place:"横浜市",promoter:"○○兄弟",rate:10,visitors:30,memo:"サンプルデータ"},wines:[{id:1,name:"Mosel Riesling A",price:3500,type:"白",region:"ドイツ・モーゼル"},{id:2,name:"Mosel Wine B",price:4500,type:"白",region:"ドイツ・モーゼル"},{id:3,name:"Red Wine C",price:4200,type:"赤",region:"フランス"}],sales:[{id:1,wineId:1,qty:4},{id:2,wineId:2,qty:3}]};
+function clone(x){return JSON.parse(JSON.stringify(x))}
+function load(){try{let x=localStorage.getItem(KEY);return x?JSON.parse(x):clone(DEMO)}catch(e){return clone(DEMO)}}
+let db=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));return true}catch(e){toast("保存できませんでした");return false}}
+function $(id){return document.getElementById(id)}
+function yen(n){return "¥"+Math.round(Number(n)||0).toLocaleString()}
+function wine(id){return db.wines.find(x=>Number(x.id)===Number(id))}
+function sold(id){return db.sales.filter(s=>Number(s.wineId)===Number(id)).reduce((a,s)=>a+Number(s.qty||0),0)}
+function totalUnits(){return db.sales.reduce((a,s)=>a+Number(s.qty||0),0)}
+function totalSales(){return db.sales.reduce((a,s)=>a+(wine(s.wineId)?.price||0)*Number(s.qty||0),0)}
+function reward(){return totalSales()*(Number(db.event.rate)||0)/100}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function toast(msg){let t=$("toast");t.textContent=msg;t.style.opacity=1;t.style.transform="translate(-50%,0)";clearTimeout(window.__t);window.__t=setTimeout(()=>{t.style.opacity=0;t.style.transform="translate(-50%,20px)"},1800)}
+function render(){
+$("eName").value=db.event.name||"";$("eDate").value=db.event.date||"";$("eCafe").value=db.event.cafe||"";$("ePlace").value=db.event.place||"";$("ePromoter").value=db.event.promoter||"";$("eRate").value=db.event.rate??10;$("eVisitors").value=db.event.visitors??0;$("eMemo").value=db.event.memo||"";
+renderDashboard();renderWines();renderSelects();renderSales();renderReport()
+}
+function renderDashboard(){
+let sales=totalSales(),units=totalUnits(),r=reward();
+$("kpis").innerHTML=[["カフェ売上",yen(sales)],["販売本数",units+"本"],["宣伝部隊報酬率",(Number(db.event.rate)||0)+"%"],["宣伝部隊報酬",yen(r)]].map(x=>`<div class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div></div>`).join("");
+$("wineSummary").innerHTML=db.wines.map(w=>{let q=sold(w.id);return `<div class="rank"><span>${esc(w.name)}<br><small>${q}本 × ${yen(w.price)}</small></span><b>${yen(q*w.price)}</b></div>`}).join("")||'<div class="empty">ワイン未登録</div>';
+$("settlementSummary").innerHTML=`<div class="rank"><span>カフェ販売総額</span><b>${yen(sales)}</b></div><div class="rank"><span>宣伝部隊報酬（${Number(db.event.rate)||0}%）</span><b>${yen(r)}</b></div><div class="rank"><span>報酬支払後の残額</span><b>${yen(sales-r)}</b></div><p class="small">※残額は売上総額から宣伝部隊報酬だけを差し引いた金額です。仕入原価・その他経費・利益は計算していません。</p>`;
+$("eventSummary").innerHTML=`<div class="rank"><span>イベント名</span><b>${esc(db.event.name||"未設定")}</b></div><div class="rank"><span>開催日</span><b>${esc(db.event.date||"未設定")}</b></div><div class="rank"><span>カフェ</span><b>${esc(db.event.cafe||"未設定")}</b></div><div class="rank"><span>宣伝部隊</span><b>${esc(db.event.promoter||"未設定")}</b></div>`
+}
+function renderWines(){
+$("wineTable").innerHTML=db.wines.map(w=>{let q=sold(w.id);return `<tr><td>${esc(w.name)}</td><td>${esc(w.type||"-")}</td><td>${esc(w.region||"-")}</td><td class="num">${yen(w.price)}</td><td class="num">${q}</td><td class="num">${yen(q*w.price)}</td><td><button class="btn danger js-del-wine" data-id="${w.id}" type="button">削除</button></td></tr>`}).join("")||'<tr><td colspan="7" class="empty">ワイン未登録</td></tr>'
+}
+function renderSelects(){$("sWine").innerHTML='<option value="">選択してください</option>'+db.wines.map(w=>`<option value="${w.id}">${esc(w.name)}｜${yen(w.price)}</option>`).join("")}
+function renderSales(){
+$("salesTable").innerHTML=db.sales.slice().reverse().map(s=>`<tr><td>${esc(wine(s.wineId)?.name||"不明")}</td><td class="num">${s.qty}</td><td class="num">${yen((wine(s.wineId)?.price||0)*s.qty)}</td><td><button class="btn danger js-del-sale" data-id="${s.id}" type="button">削除</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">販売データ未登録</td></tr>'
+}
+function reportHtml(){
+let sales=totalSales(),r=reward(),units=totalUnits();
+let rows=db.wines.map(w=>{let q=sold(w.id);return `<tr><td>${esc(w.name)}</td><td>${esc(w.type||"")}</td><td>${esc(w.region||"")}</td><td class="r">${q}</td><td class="r">${yen(w.price)}</td><td class="r">${yen(q*w.price)}</td></tr>`}).join("");
+return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(db.event.name||"Wine POPUP")} 報告書</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif;color:#292523;max-width:850px;margin:0 auto;padding:28px}h1{font-size:24px;border-bottom:3px solid #6d2940;padding-bottom:10px}h2{font-size:17px;margin-top:28px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid #ddd;padding:8px}th{text-align:left;background:#f5f2ef}.r{text-align:right}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.kpi{border:1px solid #ddd;border-radius:10px;padding:12px}.label{font-size:11px;color:#777}.value{font-size:20px;font-weight:800;margin-top:4px}.note{background:#f8edf0;padding:12px;border-radius:8px;font-size:12px;line-height:1.6}@media(max-width:600px){.kpis{grid-template-columns:1fr 1fr}body{padding:16px}}</style></head><body>
+<h1>🍷 Wine POPUP イベント報告書</h1><p>作成日：${new Date().toLocaleDateString("ja-JP")}</p>
+<h2>1. イベント概要</h2><table><tbody><tr><th>イベント名</th><td>${esc(db.event.name||"-")}</td></tr><tr><th>開催日</th><td>${esc(db.event.date||"-")}</td></tr><tr><th>カフェ</th><td>${esc(db.event.cafe||"-")}</td></tr><tr><th>開催場所</th><td>${esc(db.event.place||"-")}</td></tr><tr><th>宣伝部隊</th><td>${esc(db.event.promoter||"-")}</td></tr><tr><th>来場者数</th><td>${Number(db.event.visitors)||0}人</td></tr></tbody></table>
+<h2>2. 売上・報酬サマリー</h2><div class="kpis"><div class="kpi"><div class="label">カフェ売上</div><div class="value">${yen(sales)}</div></div><div class="kpi"><div class="label">販売本数</div><div class="value">${units}本</div></div><div class="kpi"><div class="label">宣伝部隊報酬</div><div class="value">${yen(r)}</div></div></div>
+<p class="note">宣伝部隊報酬率：${Number(db.event.rate)||0}% ／ 報酬計算：カフェでのワイン販売総額 × 報酬率</p>
+<h2>3. ワイン別販売実績</h2><table><thead><tr><th>ワイン</th><th>タイプ</th><th>産地</th><th class="r">本数</th><th class="r">販売価格</th><th class="r">売上</th></tr></thead><tbody>${rows||"<tr><td colspan='6'>データなし</td></tr>"}</tbody></table>
+<h2>4. 精算確認</h2><table><tbody><tr><th>カフェ販売総額</th><td class="r">${yen(sales)}</td></tr><tr><th>宣伝部隊報酬率</th><td class="r">${Number(db.event.rate)||0}%</td></tr><tr><th>宣伝部隊報酬額</th><td class="r">${yen(r)}</td></tr><tr><th>報酬支払後の残額</th><td class="r">${yen(sales-r)}</td></tr></tbody></table>
+<p style="font-size:11px;color:#777;margin-top:24px">※本報告書はWine POPUP Manager Ver.1.2で作成しました。カフェのワイン仕入原価、決済手数料、その他経費、最終利益は含んでいません。</p></body></html>`
+}
+function renderReport(){
+let sales=totalSales(),r=reward(),units=totalUnits();
+$("reportPreview").innerHTML=`<h3>報告内容プレビュー</h3><div class="rank"><span>イベント</span><b>${esc(db.event.name||"未設定")}</b></div><div class="rank"><span>カフェ</span><b>${esc(db.event.cafe||"未設定")}</b></div><div class="rank"><span>販売本数</span><b>${units}本</b></div><div class="rank"><span>カフェ売上</span><b>${yen(sales)}</b></div><div class="rank"><span>宣伝部隊報酬率</span><b>${Number(db.event.rate)||0}%</b></div><div class="rank"><span>宣伝部隊報酬額</span><b>${yen(r)}</b></div>`
+}
+$("nav").addEventListener("click",e=>{let b=e.target.closest("button[data-page]");if(!b)return;document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(b.dataset.page).classList.add("active")});
+$("saveEvent").onclick=()=>{db.event={name:$("eName").value.trim(),date:$("eDate").value,cafe:$("eCafe").value.trim(),place:$("ePlace").value.trim(),promoter:$("ePromoter").value.trim(),rate:Number($("eRate").value)||0,visitors:Number($("eVisitors").value)||0,memo:$("eMemo").value.trim()};save();render();toast("イベント設定を保存しました")};
+$("addWine").onclick=()=>{let name=$("wName").value.trim(),price=Number($("wPrice").value);if(!name){toast("ワイン名を入力してください");return}if(!(price>=0)){toast("販売価格を入力してください");return}db.wines.push({id:Date.now(),name,price,type:$("wType").value.trim(),region:$("wRegion").value.trim()});save();$("wName").value="";$("wPrice").value="3500";$("wType").value="";$("wRegion").value="";render();toast("ワインを登録しました")};
+$("addSale").onclick=()=>{let wid=Number($("sWine").value),qty=Number($("sQty").value);if(!wid){toast("ワインを選択してください");return}if(!(qty>0)){toast("販売本数を入力してください");return}db.sales.push({id:Date.now(),wineId:wid,qty:Math.floor(qty)});save();$("sQty").value="1";render();toast("販売を登録しました")};
+document.addEventListener("click",e=>{let dw=e.target.closest(".js-del-wine"),ds=e.target.closest(".js-del-sale");if(dw){let id=Number(dw.dataset.id);if(db.sales.some(s=>Number(s.wineId)===id)){alert("このワインには販売データがあります。先に販売データを削除してください。");return}if(confirm("このワインを削除しますか？")){db.wines=db.wines.filter(w=>Number(w.id)!==id);save();render();toast("削除しました")}}if(ds){let id=Number(ds.dataset.id);if(confirm("この販売データを削除しますか？")){db.sales=db.sales.filter(s=>Number(s.id)!==id);save();render();toast("削除しました")}}});
+$("downloadReport").onclick=()=>{let blob=new Blob([reportHtml()],{type:"text/html;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="wine_popup_report.html";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("報告書を作成しました")};
+$("downloadCsv").onclick=()=>{let rows=[["ワイン名","販売本数","販売価格","売上"]];db.wines.forEach(w=>rows.push([w.name,sold(w.id),w.price,sold(w.id)*w.price]));rows.push([],["カフェ売上合計","",totalSales(),""]);rows.push(["宣伝部隊報酬率","",(Number(db.event.rate)||0)+"%",""]);rows.push(["宣伝部隊報酬額","",reward(),""]);let csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="wine_popup_sales.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("CSVを作成しました")};
+render();
+})();
+</script>
+</body>
+</html>
